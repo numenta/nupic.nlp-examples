@@ -39,6 +39,11 @@ parser.add_option('-p', '--prediction-start',
   help='Start converting predicted values into words using the CEPT API after \
 this many values have been seen.')
 
+parser.add_option('-o', '--output-dir',
+  default=None,
+  dest='output_dir',
+  help='Directory to write result files.')
+
 parser.add_option("-v", "--verbose",
   action="store_true",
   dest="verbose",
@@ -56,6 +61,8 @@ def main(*args, **kwargs):
   min_sparsity = float(options.min_sparsity)
   prediction_start = int(options.prediction_start)
   verbosity = 0
+  output_dir = options.output_dir
+
   if options.verbose:
     verbosity = 1
 
@@ -65,7 +72,7 @@ def main(*args, **kwargs):
 
   builder = SDR_Builder(cept_app_id, cept_app_key, cache_dir, verbosity=verbosity)
   nupic = Nupic_Word_Client()
-  runner = Association_Runner(builder, nupic, max_terms, min_sparsity, prediction_start, verbosity=verbosity)
+  runner = Association_Runner(builder, nupic, max_terms, min_sparsity, prediction_start, output_dir, verbosity=verbosity)
 
   if len(args) is 0:
     print 'no input file provided!'

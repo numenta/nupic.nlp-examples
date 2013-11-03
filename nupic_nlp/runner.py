@@ -1,5 +1,8 @@
 import string
 from random import choice
+import os
+import numpy
+import matplotlib.pyplot as plt
 
 def read_words_from(file):
   lines = open(file).read().strip().split('\n')
@@ -15,12 +18,13 @@ class Sparsity_Exception(Exception):
 
 class Association_Runner(object):
 
-  def __init__(self, builder, nupic, max_terms, min_sparsity, prediction_start, verbosity=0):
+  def __init__(self, builder, nupic, max_terms, min_sparsity, prediction_start, output_dir, verbosity=0):
     self.builder = builder
     self.nupic = nupic
     self.max_terms = max_terms
     self.min_sparsity = min_sparsity
     self.prediction_start = prediction_start
+    self.output_dir = output_dir
     self.verbosity = verbosity
 
 
@@ -80,6 +84,36 @@ minimum sparsity threshold of %.1f%%.' % (term, sparsity, self.min_sparsity))
         predicted_word = ' '
       else:
         predicted_word = self.builder.closest_term(predicted_bitmap)
+      if (predicted_word is not None 
+          and self.output_dir is not None 
+          and len(predicted_bitmap) > 0):
+        # self._bitmap_to_image(predicted_bitmap, os.path.join(self.output_dir, predicted_word + '.png'))
+        self._generage_cept_bitmap_comparison_for_term(predicted_word, predicted_bitmap, self.output_dir);
       return predicted_word
     else:
       return None
+
+
+  def _generage_cept_bitmap_comparison_for_term(self, term, predicted_bitmap, path):
+    predicted_image = os.path.join(path, ('%s_predicted.png' % term))
+    cept_image = os.path.join(path, ('%s_cept.png' % term))
+    cept_sdr = self.builder.term_to_sdr(term)
+    self._bitmap_to_image(predicted_bitmap, predicted_image)
+    self._bitmap_to_image(cept_sdr['positions'], cept_image)
+
+
+  def _bitmap_to_image(self, bitmap, path):
+    narr = self._bitmap_to_numpy_array(bitmap, 128);
+    plt.imshow(narr);
+    if self.verbosity > 0:
+      print 'Saving image at %s' % path
+    plt.savefig(path);
+
+
+  def _bitmap_to_numpy_array(self, bitmap, dimension):
+    narr = numpy.zeros((dimension, dimension), dtype="float32")
+    for index in bitmap:
+      row = index / dimension
+      col = index % dimension
+      narr[row, col] = 1
+    return narr

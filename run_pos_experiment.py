@@ -1,4 +1,4 @@
-#!/usr/bin/python
+ #!/usr/bin/python
 
 import os
 from optparse import OptionParser
@@ -25,6 +25,18 @@ parser.add_option("-v", "--verbose",
   dest="verbose",
   default=False,
   help="Prints moar details.")
+
+parser.add_option("-a", "--anomaly",
+  action="store_true",
+  dest="anomaly",
+  default=False,
+  help="Get anomaly scores instead of predictions.")
+
+parser.add_option("-n", "--interactive",
+  action="store_true",
+  dest="interactive",
+  default=False,
+  help="Opens up for user input after reading the specified.")
 
 parser.add_option("-f", "--full-tagging",
   action="store_true",
@@ -57,7 +69,7 @@ def report(output):
   print '%15s %20s %20s' % tuple(output)
 
 
-def run_pos_experiment(model, reader, target_text, simple_tags, output_file=None):
+def run_pos_experiment(model, reader, target_text, simple_tags, anomaly, output_file=None):
   last_prediction = ('','')
   for sentence in reader.get_tagged_sentences(target_text, simplify_tags=simple_tags):
     for tag in sentence:
@@ -65,12 +77,29 @@ def run_pos_experiment(model, reader, target_text, simple_tags, output_file=None
       pos = tag[1]
       model_input = { 'pos': pos }
       result = model.run(model_input)
-      line_out = (word, pos, last_prediction[0])
-      if output_file is not None:
-        output_file.write('%10s%10s%20s\n' % line_out)
-      report((word, reader.describe_tag(pos)[0], last_prediction[1]))
-      best_prediciton = result.inferences['multiStepBestPredictions'][1]
-      last_prediction = (best_prediciton, reader.describe_tag(best_prediciton)[0])
+      if anomaly:
+        anomalyScore = result.inferences['anomalyScore']
+        if output_file is not None:
+          output_file.write('%10s%10s%20f\n' % (word, pos, anomalyScore))
+        print '%15s %20s %20f' % (word, reader.describe_tag(pos)[0], anomalyScore)
+      else:
+        line_out = (word, pos, last_prediction[0])
+        if output_file is not None:
+          output_file.write('%10s%10s%20s\n' % line_out)
+        report((word, reader.describe_tag(pos)[0], last_prediction[1]))
+        best_prediciton = result.inferences['multiStepBestPredictions'][1]
+        last_prediction = (best_prediciton, reader.describe_tag(best_prediciton)[0])
+
+
+def process_sentence_for_anomolies(raw_sentence, model, reader, simple_tags):
+  sentence = reader.pos_tag_sentence(raw_sentence.split(' '), simple_tags)
+  for tag in sentence:
+    word = tag[0]
+    pos = tag[1]
+    model_input = { 'pos': pos }
+    result = model.run(model_input)
+    anomalyScore = result.inferences['anomalyScore']
+    print '%15s %20s %20f' % (word, reader.describe_tag(pos)[0], anomalyScore)
 
 
 def main(*args, **kwargs):
@@ -121,9 +150,20 @@ def main(*args, **kwargs):
           output_file.write('%10s%10s%20s\n' % ('input', 'pos', 'predicted_pos'))
         # Append each result to output file.
         with open(output_file_path, 'a') as output_file:
-          run_pos_experiment(model, reader, target_text, simple_tags, output_file)
+          run_pos_experiment(model, reader, target_text, simple_tags, options.anomaly, output_file)
       else:
-        run_pos_experiment(model, reader, target_text, simple_tags)
+        run_pos_experiment(model, reader, target_text, simple_tags, options.anomaly)
+
+      if options.interactive:
+        if options.anomaly:
+          while True:
+            input_sentence = raw_input('input sentence --> ')
+            process_sentence_for_anomolies(input_sentence, model, reader, simple_tags)
+        else:
+          while True:
+            input_word = raw_input('input word --> ')
+            process_word
+
 
 if __name__ == "__main__":
   main()

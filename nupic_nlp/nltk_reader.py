@@ -28,13 +28,6 @@ def is_punctuation(word):
   return word in string.punctuation or word == '--'
 
 
-def pos_tag_sentence(sent, simplify_tags=False):
-  tagged = pos_tag(sent)
-  if simplify_tags:
-    tagged = [ (word, simplify_wsj_tag(tag)) for word, tag in tagged ]
-  return tagged
-
-
 class NLTK_Reader(object):
 
   ERROR = 0
@@ -176,7 +169,14 @@ class NLTK_Reader(object):
     for sent in self.get_sentences(text_name):
       if exclude_punctuation:
         sent = [ word for word in sent if not is_punctuation(word) ]
-      yield pos_tag_sentence(sent, simplify_tags=simplify_tags)
+      yield self.pos_tag_sentence(sent, simplify_tags=simplify_tags)
+
+
+  def pos_tag_sentence(self, sent, simplify_tags=False):
+    tagged = pos_tag(sent)
+    if simplify_tags:
+      tagged = [ (word, simplify_wsj_tag(tag)) for word, tag in tagged ]
+    return tagged
 
 
   def get_parts_of_speech(self, text_name, exclude_punctuation=False, simplify_tags=False):

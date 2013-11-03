@@ -23,7 +23,7 @@ MODEL_PARAMS = {
     # Model parameter dictionary.
     'modelParams': {
         # The type of inference that this model will perform
-        'inferenceType': 'TemporalMultiStep',
+        'inferenceType': 'TemporalAnomaly',
 
         'sensorParams': {
             # Sensor diagnostic output verbosity control;

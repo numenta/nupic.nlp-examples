@@ -87,7 +87,6 @@ minimum sparsity threshold of %.1f%%.' % (term, sparsity, self.min_sparsity))
       if (predicted_word is not None 
           and self.output_dir is not None 
           and len(predicted_bitmap) > 0):
-        # self._bitmap_to_image(predicted_bitmap, os.path.join(self.output_dir, predicted_word + '.png'))
         self._generage_cept_bitmap_comparison_for_term(predicted_word, predicted_bitmap, self.output_dir);
       return predicted_word
     else:

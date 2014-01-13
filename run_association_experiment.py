@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys
+import time
 from optparse import OptionParser
 from nupic_nlp import SDR_Builder, Nupic_Word_Client, Association_Runner
 
@@ -15,7 +16,7 @@ cept_app_id = os.environ['CEPT_APP_ID']
 cept_app_key = os.environ['CEPT_APP_KEY']
 
 DEFAULT_MAX_TERMS = '100'
-DEFAULT_MIN_sparsity = 0.0 # percent
+DEFAULT_MIN_sparsity = 2.0 # percent
 DEFAULT_PREDICTION_START = '50'
 cache_dir = './cache'
 
@@ -38,6 +39,11 @@ parser.add_option('-p', '--prediction-start',
   dest='prediction_start',
   help='Start converting predicted values into words using the CEPT API after \
 this many values have been seen.')
+
+parser.add_option('--triples',
+  action="store_true", default=False,
+  dest='predict_triples',
+  help='If specified, assumes word file contains word triples')
 
 parser.add_option("-v", "--verbose",
   action="store_true",
@@ -63,18 +69,37 @@ def main(*args, **kwargs):
   if not os.path.exists(cache_dir):
     os.mkdir(cache_dir)
 
-  builder = SDR_Builder(cept_app_id, cept_app_key, cache_dir, verbosity=verbosity)
-  nupic = Nupic_Word_Client()
-  runner = Association_Runner(builder, nupic, max_terms, min_sparsity, prediction_start, verbosity=verbosity)
+  builder = SDR_Builder(cept_app_id, cept_app_key, cache_dir,
+                        verbosity=verbosity)
+  
+  if options.predict_triples:
+    # Instantiate TP with parameters for Fox demo
+    nupic = Nupic_Word_Client(
+                minThreshold=80, activationThreshold=100, pamLength=10)
+  else:
+    nupic = Nupic_Word_Client()
+  if options.verbose:
+    nupic.printParameters()
+  runner = Association_Runner(builder, nupic,
+                              max_terms, min_sparsity,
+                              prediction_start, verbosity=verbosity)
 
   if len(args) is 0:
     print 'no input file provided!'
     exit(1)
   elif len(args) == 1:
-    runner.direct_association(args[0])
-  else: 
-    runner.random_dual_association(args[0], args[1])
+    if options.predict_triples:
+      if options.verbose: print "Predicting triples!"
+      runner.direct_association_triples(args[0])
+    else:
+      runner.direct_association(args[0])
+  else:
+    if options.predict_triples:
+      print "Please specify exactly one input file containing triples"
+    else:
+      runner.random_dual_association(args[0], args[1])
 
 
 if __name__ == "__main__":
   main()
+  time.sleep(30)

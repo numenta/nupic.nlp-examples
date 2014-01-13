@@ -219,3 +219,82 @@ Randomly chooses one term from the animal list, and one from the veggie list. Se
     ./run_association_experiment.py resources/associations/x-in-y.csv -p 0 -t 300
 
 Reads an input file of country --> capital associations, and passes them into NuPIC in the same way. Doesn't predict very well until it's seen the entire list once, then it is pretty decent.
+
+## What Does The Fox Eat?
+
+The Fox demo was shown during the Fall NuPIC hackathon in SF. The video of that
+is here:  http://numenta.org/blog/2013/11/06/2013-fall-hackathon-outcome.html#fox
+
+The fox demo uses the word SDR association framework defined in nupic_nlp to associate
+three word phrases, teaching it sentences like "elephants eat leaves", "dogs
+like sleep", and "cows eat grass". After some training, we ask NuPIC, "What does
+the fox eat?"  Up to this point the CLA had never seen the word fox or anything
+about what they eat. In order to solve this task, the CLA has to solve a number
+of problems:
+
+1) It has to semantically associate the word fox with other similar words it
+has been trained on.  This is achieved using the CEPT SDR representations.
+
+2) It has to learn a primitive three word grammar.
+
+3) It has to learn and predict high order sequences. When processing the verb it
+has to remember the noun as well. Both noun1 and verb1 are required to predict
+noun2 correctly.
+
+4) It has to predict a word that is semantically correct based on the past
+sequence. It has to predict food if the verb is "eat". It has to predict the
+right type of food based on the animal that is eating.
+
+So what does the fox eat? Find out the answer by watching the video or running
+the demo!
+
+To run the Fox demo, type in:
+
+    ./run_association_experiment.py --triples -p 1 -t 38 resources/associations/foxeat.csv
+
+You should start seeing output that looks like this:
+
+Prediction output for 37 triples of terms
+
+  COUNT        TERM ONE        TERM TWO      TERM THREE |TERM THREE PREDICTION
+  -----------------------------------------------------------------------------
+      1             cow             eat           grain |               flies
+      2        elephant             eat          leaves |               grain
+      3            goat             eat           grass |              leaves
+      4            wolf             eat          rabbit |              leaves
+      5             cat           likes            ball |
+      6        elephant           likes           water |                ball
+      7           sheep             eat           grass |              leaves
+      8             cat             eat          salmon |               grass
+      9            wolf             eat            mice |              rabbit
+
+The above is the training set. "TERM THREE PREDICTION" is the prediction given
+by the CLA after seeing the first two words. It then sees the actual third term
+and adjusts it's connections. For example, in row 6, when it first sees
+"elephant likes" it predicts "ball" because that is the only thing it knows that
+animals like. It knows enough to not predict flies, grain, etc. but doesn't yet
+know that elephants like water. 
+
+After 35 training phrases you will see:
+
+    But what does the fox eat?? (Press 'return' to see!)
+    
+Press return. The right most word will contain the prediction!
+
+# Next steps for Fox demo
+
+This demo was put together very quickly for the hackathon. There are many
+improvements to be made. A couple of suggestions are here:
+
+1) The CEPT API returns SDR's that are at varying levels of sparsity. The
+current demo gets around this problem by randomly sparsifying the CEPT SDR's. A
+better approach would be to run the CEPT SDR's through a properly configured
+spatial pooler followed by a temporal pooler. This is likely to give more robust
+results. It will also run faster as we may be able to use a much smaller TP than
+is currently used.
+
+2) The current training set was created in a rush for the hackathon. It is
+extremely small and performance is brittle. A more comprehensive training set
+might make the system a lot more robust.
+
+

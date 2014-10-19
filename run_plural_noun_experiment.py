@@ -8,13 +8,12 @@ from nupic_nlp import (NLTK_Reader,
                        Association_Runner)
 
 
-if 'CEPT_APP_ID' not in os.environ or 'CEPT_APP_KEY' not in os.environ:
-  print 'Missing CEPT_APP_ID and CEPT_APP_KEY environment variables.'
+if 'CEPT_APP_KEY' not in os.environ:
+  print 'Missing CEPT_APP_KEY environment variables.'
   print 'You can retrieve these by registering for the CEPT API at '
   print 'https://cept.3scale.net/'
   quit(-1)
 
-cept_app_id = os.environ['CEPT_APP_ID']
 cept_app_key = os.environ['CEPT_APP_KEY']
 
 DEFAULT_MAX_TERMS = '100'
@@ -67,7 +66,7 @@ def main(*args, **kwargs):
     os.mkdir(cache_dir)
 
   reader = NLTK_Reader(os.path.join(cache_dir, 'text'), verbosity=verbosity)
-  builder = SDR_Builder(cept_app_id, cept_app_key, cache_dir, verbosity=verbosity)
+  builder = SDR_Builder(cept_app_key, cache_dir, verbosity=verbosity)
   nupic = Nupic_Word_Client()
   runner = Association_Runner(builder, nupic, max_terms, min_sparsity, prediction_start, verbosity=verbosity)
 

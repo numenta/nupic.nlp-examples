@@ -22,8 +22,8 @@ def is_valid(sdr, min_sparsity):
 
 class Builder(object):
 
-  def __init__(self, cept_app_id, cept_app_key, cache_dir, verbosity=0):
-    self.cept_client = pycept.Cept(cept_app_id, cept_app_key, verbosity=verbosity)
+  def __init__(self, cept_app_key, cache_dir, retina='eng_gen', verbosity=0):
+    self.cept_client = pycept.Cept(cept_app_key, retina=retina, verbosity=verbosity)
     self.cache_dir = cache_dir
 
 
@@ -56,9 +56,12 @@ class Builder(object):
 
 
 
-  def closest_term(self, bitmap):
-    closest = self.cept_client.bitmapToTerms(
-      128, 128, bitmap)
+  def closest_term(self, onBits):
+    try:
+        closest = self.cept_client.bitmapToTerms(onBits)
+    except Exception as e:
+        # CEPT didn't like our SDR, so we show <garbage> in the output
+        closest = [{'term': '<garbage>'},]
     if len(closest) is 0:
       return None
     else:

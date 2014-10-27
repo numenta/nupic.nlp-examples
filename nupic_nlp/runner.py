@@ -3,6 +3,10 @@ from random import choice
 import numpy
 import sys
 
+# Max number of bits set in a SDR sent to cortical to avoid HTTP 500 errors
+# SDRs denser than this must be randomly subsampled
+MAX_BITMAP_SIZE = 1024
+
 def read_words_from(file):
   lines = open(file).read().strip().split('\n')
   return [tuple(line.split(',')) for line in lines]
@@ -120,22 +124,22 @@ class Association_Runner(object):
     self.associate(associations)
     
   def subsample_sdr(self, raw_sdr, pct = 0.75):
-    """
-    Subsample the CEPT SDR and return a new one. This is a hack to achieve
-    proper sparsification. A better mechanism would be to run inputs through
-    an SP before sending on to the TP.
-    """
+    """ Subsample the CEPT SDR (json representation) """
     positions = raw_sdr['positions']
-    n = len(positions)
+    raw_sdr['positions'] = self.subsample_sdr_bitmap(positions, pct)
+    raw_sdr['sparsity'] = pct*raw_sdr['sparsity']
+    return raw_sdr
+
+  def subsample_sdr_bitmap(self, bitmap, pct=0.75):
+    """ Subsample the CEPT bitmap """
+    n = len(bitmap)
     ns = (int)(pct*n)   # New length
     newIndices = self.random.permutation(n)[0:ns]
     newIndices.sort()
     newPositions = []
     for i in newIndices:
-      newPositions.append(positions[i])
-    raw_sdr['positions'] = newPositions
-    raw_sdr['sparsity'] = pct*raw_sdr['sparsity']
-    return raw_sdr
+      newPositions.append(bitmap[i])
+    return newPositions
 
 
   def _feed_term(self, term, fetch_word_from_sdr=False, subsample=False):
@@ -153,6 +157,11 @@ minimum sparsity threshold of %.1f%%.' % (term, sparsity, self.min_sparsity))
     if fetch_word_from_sdr:
       if len(predicted_bitmap) is 0:
         predicted_word = ' '
+      elif len(predicted_bitmap) >= MAX_BITMAP_SIZE:
+        # The predicted_bitmap is too dense, so we subsample
+        scaling = float(MAX_BITMAP_SIZE) / (len(predicted_bitmap) + 20)
+        predicted_bitmap = self.subsample_sdr_bitmap(predicted_bitmap, pct=scaling)
+        predicted_word = self.builder.closest_term(predicted_bitmap)
       else:
         predicted_word = self.builder.closest_term(predicted_bitmap)
       return predicted_word

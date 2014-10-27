@@ -4,20 +4,20 @@ import sys
 import time
 from optparse import OptionParser
 from nupic_nlp import SDR_Builder, Nupic_Word_Client, Association_Runner
+from pycept.cept import RETINA_SIZES
 
-
-if 'CEPT_APP_ID' not in os.environ or 'CEPT_APP_KEY' not in os.environ:
-  print 'Missing CEPT_APP_ID and CEPT_APP_KEY environment variables.'
+if 'CEPT_APP_KEY' not in os.environ:
+  print 'Missing CEPT_APP_KEY environment variables.'
   print 'You can retrieve these by registering for the CEPT API at '
   print 'https://cept.3scale.net/'
   quit(-1)
 
-cept_app_id = os.environ['CEPT_APP_ID']
 cept_app_key = os.environ['CEPT_APP_KEY']
 
 DEFAULT_MAX_TERMS = '100'
 DEFAULT_MIN_sparsity = 2.0 # percent
 DEFAULT_PREDICTION_START = '50'
+DEFAULT_RETINA = 'eng_gen'
 cache_dir = './cache'
 
 parser = OptionParser(usage="%prog input_file [options]")
@@ -39,6 +39,11 @@ parser.add_option('-p', '--prediction-start',
   dest='prediction_start',
   help='Start converting predicted values into words using the CEPT API after \
 this many values have been seen.')
+
+parser.add_option('-r', '--retina',
+  default=DEFAULT_RETINA,
+  dest='retina',
+  help='Which retina to use from cotrical.io')
 
 parser.add_option('--triples',
   action="store_true", default=False,
@@ -65,19 +70,33 @@ def main(*args, **kwargs):
   if options.verbose:
     verbosity = 1
 
+  retina = options.retina
+
   # Create the cache directory if necessary.
   if not os.path.exists(cache_dir):
     os.mkdir(cache_dir)
 
-  builder = SDR_Builder(cept_app_id, cept_app_key, cache_dir,
-                        verbosity=verbosity)
+  builder = SDR_Builder(cept_app_key, cache_dir,
+                        verbosity=verbosity,
+                        retina=retina)
+
+  def size_to_thresholds(sdr_size):
+      """ scale minThreshold and activationThreshold according to sdr_size """
+      factor = float(sdr_size) / (128*128)
+      return 80*factor, 100*factor
+
+  sdr_size = RETINA_SIZES[retina]['width'] * RETINA_SIZES[retina]['height']
+
+  minThreshold, activationThreshold = size_to_thresholds(sdr_size)
   
   if options.predict_triples:
     # Instantiate TP with parameters for Fox demo
-    nupic = Nupic_Word_Client(
-                minThreshold=80, activationThreshold=100, pamLength=10)
+    nupic = Nupic_Word_Client(numberOfCols=sdr_size,
+                              minThreshold=minThreshold,
+                              activationThreshold=activationThreshold,
+                              pamLength=10)
   else:
-    nupic = Nupic_Word_Client()
+    nupic = Nupic_Word_Client(numberOfCols=sdr_size)
   if options.verbose:
     nupic.printParameters()
   runner = Association_Runner(builder, nupic,

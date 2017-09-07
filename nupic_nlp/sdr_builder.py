@@ -2,7 +2,6 @@ import math
 import os
 import sys
 import json
-import pycept
 import retinasdk
 
 BMP_WIDTH = 128

@@ -1,4 +1,5 @@
 import numpy
+
 from nupic.algorithms.temporal_memory import TemporalMemory as TM
 
 

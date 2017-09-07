@@ -5,8 +5,7 @@ from nltk.corpus import (gutenberg,
                         wordnet as wn)
 from nltk.corpus.reader import NOUN
 from nltk.corpus.reader import PlaintextCorpusReader
-from nltk.tag import pos_tag
-from nltk.tag.simplify import simplify_wsj_tag
+from nltk.tag import pos_tag, map_tag
 from nltk.tokenize import (word_tokenize,
                           wordpunct_tokenize,
                           sent_tokenize)
@@ -26,13 +25,6 @@ def plural(word):
 
 def is_punctuation(word):
   return word in string.punctuation or word == '--'
-
-
-def pos_tag_sentence(sent, simplify_tags=False):
-  tagged = pos_tag(sent)
-  if simplify_tags:
-    tagged = [ (word, simplify_wsj_tag(tag)) for word, tag in tagged ]
-  return tagged
 
 
 class NLTKReader(object):
@@ -172,19 +164,18 @@ class NLTKReader(object):
     return self._get_reader_for(text_name).sents(text_name)
 
 
-  def get_tagged_sentences(self, text_name, exclude_punctuation=False, simplify_tags=False):
+  def get_tagged_sentences(self, text_name, exclude_punctuation=False):
     for sent in self.get_sentences(text_name):
       if exclude_punctuation:
         sent = [ word for word in sent if not is_punctuation(word) ]
-      yield pos_tag_sentence(sent, simplify_tags=simplify_tags)
+      yield pos_tag(sent)
 
 
-  def get_parts_of_speech(self, text_name, exclude_punctuation=False, simplify_tags=False):
+  def get_parts_of_speech(self, text_name, exclude_punctuation=False):
     self._log(self.INFO, 'Parts of speech extraction beginning. This might take awhile...')
     pos = set()
     for sent in self.get_tagged_sentences(text_name,
-                                          exclude_punctuation=exclude_punctuation,
-                                          simplify_tags=simplify_tags):
+                                          exclude_punctuation=exclude_punctuation):
       words, parts = zip(*sent)
       pos.update(parts)
     # String blanks (not sure why there are blanks, but there are sometimes).

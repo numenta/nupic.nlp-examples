@@ -4,17 +4,13 @@ This repo contains my Natural Language Processing (NLP) experiments with [NuPIC]
 
 ## Requirements
 
-For some experiments, you'll need an app ID and app key from [CEPT](https://cept.3scale.net/) for the usage of their API to get word SDRs and decode SDRs back into words. 
+For some experiments, you'll need an app ID and app key from [CEPT](https://cept.3scale.net/) for the usage of their API to get word SDRs and decode SDRs back into words.
 
 You'll also need 35MB (or more depending on what individual experiments you run) of space to store the text corpus from the NLTK and SDRs from CEPT.
 
 ## Installation
 
-### Python Modules
-
-    pip install git+git://github.com/numenta/pycept.git
-    pip install pyyaml
-    pip install nltk
+    pip install -r requirements.txt
 
 ### NLTK Download
 
@@ -28,10 +24,9 @@ This will bring up a GUI window for you to choose what texts to download. Choose
 
 ### Environment
 
-Set up the following environment variables to contain your CEPT API app id and key:
+Set up the following environment variable to contain your Cortical.IO API key:
 
-    export CEPT_APP_ID=<your_id>
-    export CEPT_APP_KEY=<your_key>
+    export CORTICAL_API_KEY=<your_key>
 
 ## Caching
 
@@ -111,7 +106,7 @@ When to start sending the predicted SDRs from NuPIC back to the CEPT API to tran
 
 > This really doesn't work at all. NuPIC doesn't predict anything. It was my first experiment, and I made the assumption that singular and plural semantic information was inherent in the CEPT SDRs, but it seems they are not. I am leaving it as an example of how you might extract text from the NLTK corpus and push through NuPIC.
 
-The `run_plural_noun_experiment.py` script contains code to extract all the nouns from the corpus contained within the [Python NLTK](http://nltk.org/) and attempt to construct each plural form. It then passes each word pair into the CEPT API to retrieve a [Sparce Distributed Representation (SDR)](https://github.com/numenta/nupic/wiki/Sparse-Distributed-Representations) of it. If this word or its derived plural for is below a sparsity threshold (default 2.0%), it both words are ignored. This means that the either the word(s) are quite uncommon in the English language, or that the derived plural form is malformed (ex: cactus -> cactuses). Each SDR retrieved is cached within a local `./cache` directory within a JSON file. 
+The `run_plural_noun_experiment.py` script contains code to extract all the nouns from the corpus contained within the [Python NLTK](http://nltk.org/) and attempt to construct each plural form. It then passes each word pair into the CEPT API to retrieve a [Sparce Distributed Representation (SDR)](https://github.com/numenta/nupic/wiki/Sparse-Distributed-Representations) of it. If this word or its derived plural for is below a sparsity threshold (default 2.0%), it both words are ignored. This means that the either the word(s) are quite uncommon in the English language, or that the derived plural form is malformed (ex: cactus -> cactuses). Each SDR retrieved is cached within a local `./cache` directory within a JSON file.
 
 After extraction of nouns and conversion into SDRs, each noun will be pushed through NuPIC's temporal pooler as a raw SDR. Singular forms are followed by plural forms, and between each pair, a temporal pooler reset() occurs. After `--prediction-start` terms have been fed into NuPIC's TP (default 1000), predictions from the TP will be sent to the CEPT API to calculate the closest term from SDR.
 
@@ -152,7 +147,7 @@ Running without any options will take a very long time, so you might want to try
 You can also specify the minimun sparsity threshold:
 
     python run_plural_noun_experiment.py --max-terms=10 --min-sparsity=1.0
-   
+
 The NLTK corpus contains somewhere around 6,300 nouns to process, which means over 12K API calls to CEPT for SDRs. The results of each call are cached in the `./cache` directory, so subsequent runs will be much faster, but if you want to run it all in one go, I would suggest you run it overnight and specify `--max-terms=all`.
 
 ### Parts of Speech
@@ -202,7 +197,7 @@ Partial output:
     blowing                 noun               adverb
           .                    .                    .
 
-As you can see from this sample output, there are problems with NLTK's POS tagging. For example, `bit` is mis-categorized as a noun, when it is used as a past-tense verb. When the input is incorrect, it is harder for NuPIC to predict correctly. You might also note, however, that NuPIC does predict the end of the sentence correctly. 
+As you can see from this sample output, there are problems with NLTK's POS tagging. For example, `bit` is mis-categorized as a noun, when it is used as a past-tense verb. When the input is incorrect, it is harder for NuPIC to predict correctly. You might also note, however, that NuPIC does predict the end of the sentence correctly.
 
 Grammar trees are difficult to predict, even for humans. At any point in the tree, the sentence could branch into multiple directions. Turning this experiment into an anomaly detection problem could provide more valuable results.
 
@@ -273,12 +268,12 @@ by the CLA after seeing the first two words. It then sees the actual third term
 and adjusts it's connections. For example, in row 6, when it first sees
 "elephant likes" it predicts "ball" because that is the only thing it knows that
 animals like. It knows enough to not predict flies, grain, etc. but doesn't yet
-know that elephants like water. 
+know that elephants like water.
 
 After 35 training phrases you will see:
 
     But what does the fox eat?? (Press 'return' to see!)
-    
+
 Press return. The right most word will contain the prediction!
 
 # Next steps for Fox demo
@@ -296,5 +291,3 @@ is currently used.
 2) The current training set was created in a rush for the hackathon. It is
 extremely small and performance is brittle. A more comprehensive training set
 might make the system a lot more robust.
-
-

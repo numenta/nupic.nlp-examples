@@ -1,48 +1,44 @@
 import numpy
-# This is the class correspondingn to the C++ optimized Temporal Pooler (default)
-from nupic.research.TP10X2 import TP10X2 as TP
+from nupic.algorithms.temporal_memory import TemporalMemory as TM
 
 
 class Client(object):
 
   def __init__(self,
-               numberOfCols=16384, cellsPerColumn=8,
-                initialPerm=0.5, connectedPerm=0.5,
-                minThreshold=164, newSynapseCount=164,
-                permanenceInc=0.1, permanenceDec=0.0,
-                activationThreshold=164, 
-                pamLength=10):
+               numberOfCols=16384,
+               cellsPerColumn=8,
+               activationThreshold=13,
+               minThreshold=10,
+               verbosity=0
+               ):
+    self.tm = TM(
+      columnDimensions=(numberOfCols,),
+      cellsPerColumn=cellsPerColumn,
+      activationThreshold=activationThreshold,
+      minThreshold=minThreshold)
 
-    self.tp = TP(numberOfCols=numberOfCols, cellsPerColumn=cellsPerColumn,
-                initialPerm=initialPerm, connectedPerm=connectedPerm,
-                minThreshold=minThreshold, newSynapseCount=newSynapseCount,
-                permanenceInc=permanenceInc, permanenceDec=permanenceDec,
-                
-                # 1/2 of the on bits = (16384 * .02) / 2
-                activationThreshold=activationThreshold, 
-                globalDecay=0, burnIn=1,
-                checkSynapseConsistency=False,
-                pamLength=pamLength)
-
+    if verbosity > 0:
+      print "TM Params:"
+      print "columnDimensions: {}".format(self.tm.getColumnDimensions())
+      print "cellsPerColumn: {}".format(self.tm.getCellsPerColumn())
+      print "activationThreshold: {}".format(self.tm.getActivationThreshold())
+      print "minThreshold: {}".format(self.tm.getMinThreshold())
+      # print "columnDimensions: {}".format(self.tm.getColumnDimensions())
+      # print "columnDimensions: {}".format(self.tm.getColumnDimensions())
+      # print "columnDimensions: {}".format(self.tm.getColumnDimensions())
+      # print "columnDimensions: {}".format(self.tm.getColumnDimensions())
+      # print "columnDimensions: {}".format(self.tm.getColumnDimensions())
+      # print "columnDimensions: {}".format(self.tm.getColumnDimensions())
 
   def feed(self, sdr):
-    tp = self.tp
+    tm = self.tm
     narr = numpy.array(sdr, dtype="uint32")
-    tp.compute(narr, enableLearn = True, computeInfOutput = True)
+    tm.compute(narr, learn=True)
+    # This returns the indices of the predictive minicolumns.
+    predictiveCells = tm.getPredictiveCells()
+    # print predictiveCells
+    return numpy.unique(numpy.array(predictiveCells) / tm.getCellsPerColumn())
 
-    predicted_cells = tp.getPredictedState()
-    # print predicted_cells.tolist()
-    predicted_columns = predicted_cells.max(axis=1)
-    # print predicted_columns.tolist()
-    # import pdb; pdb.set_trace()
-    return predicted_columns.nonzero()[0].tolist()
-  
-  def printParameters(self):
-    """
-    Print CLA parameters
-    """
-    self.tp.printParameters()
-  
 
   def reset(self):
-    self.tp.reset()
+    self.tm.reset()

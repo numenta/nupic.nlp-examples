@@ -3,8 +3,8 @@
 import os
 from optparse import OptionParser
 
-from nupic_nlp import NLTK_Reader
-from nupic.frameworks.opf.modelfactory import ModelFactory
+from nupic_nlp import NLTKReader
+from nupic.frameworks.opf.model_factory import ModelFactory
 
 import run_pos_model_params
 
@@ -77,11 +77,11 @@ def main(*args, **kwargs):
   """POS Experiment main entry point."""
 
   (options, args) = parser.parse_args()
-  verbosity = NLTK_Reader.WARN
+  verbosity = NLTKReader.WARN
   if options.verbose:
-    verbosity = NLTK_Reader.DEBUG
+    verbosity = NLTKReader.DEBUG
 
-  reader = NLTK_Reader(
+  reader = NLTKReader(
     input='./resources/text',
     cache_dir='./cache/text', verbosity=verbosity
   )
@@ -127,4 +127,3 @@ def main(*args, **kwargs):
 
 if __name__ == "__main__":
   main()
-

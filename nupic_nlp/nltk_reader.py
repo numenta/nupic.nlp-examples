@@ -1,14 +1,14 @@
 import os
 import string
 
-from nltk.corpus import (gutenberg, 
+from nltk.corpus import (gutenberg,
                         wordnet as wn)
 from nltk.corpus.reader import NOUN
 from nltk.corpus.reader import PlaintextCorpusReader
 from nltk.tag import pos_tag
 from nltk.tag.simplify import simplify_wsj_tag
-from nltk.tokenize import (word_tokenize, 
-                          wordpunct_tokenize, 
+from nltk.tokenize import (word_tokenize,
+                          wordpunct_tokenize,
                           sent_tokenize)
 from tags import DESCRIPTIONS as tag_descriptions
 
@@ -35,7 +35,7 @@ def pos_tag_sentence(sent, simplify_tags=False):
   return tagged
 
 
-class NLTK_Reader(object):
+class NLTKReader(object):
 
   ERROR = 0
   WARN = 1
@@ -118,8 +118,8 @@ class NLTK_Reader(object):
     self._check_text_availability(text_name)
     words_with_puncuation = self.get_words(text_name)
     # Strip punctuation and make lower case.
-    words = [w.lower() 
-      for w in words_with_puncuation 
+    words = [w.lower()
+      for w in words_with_puncuation
       if w not in string.punctuation and len(w) > 3]
     # Remove duplicate nouns.
     words = list(set(words))
@@ -182,8 +182,8 @@ class NLTK_Reader(object):
   def get_parts_of_speech(self, text_name, exclude_punctuation=False, simplify_tags=False):
     self._log(self.INFO, 'Parts of speech extraction beginning. This might take awhile...')
     pos = set()
-    for sent in self.get_tagged_sentences(text_name, 
-                                          exclude_punctuation=exclude_punctuation, 
+    for sent in self.get_tagged_sentences(text_name,
+                                          exclude_punctuation=exclude_punctuation,
                                           simplify_tags=simplify_tags):
       words, parts = zip(*sent)
       pos.update(parts)

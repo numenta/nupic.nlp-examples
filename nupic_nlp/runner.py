@@ -7,15 +7,21 @@ import sys
 # SDRs denser than this must be randomly subsampled
 MAX_BITMAP_SIZE = 1024
 
-def read_words_from(file):
+BMP_WIDTH = 128
+BMP_HEIGHT = 128
+BMP_LENGTH = BMP_WIDTH * BMP_HEIGHT
+
+
+
+def readWordsFrom(file):
   lines = open(file).read().strip().split('\n')
   return [tuple(line.split(',')) for line in lines]
 
-def strip_punctuation(s):
+def stripPunctuation(s):
   return s.translate(string.maketrans("",""), string.punctuation)
 
 
-class Sparsity_Exception(Exception):
+class SparsityException(Exception):
   pass
 
 
@@ -23,22 +29,20 @@ def prompt(question):
   sys.stdout.write(question)
   choice = raw_input().lower()
 
-class Association_Runner(object):
+class AssociationRunner(object):
 
-  def __init__(self, builder, nupic, max_terms, min_sparsity, prediction_start, verbosity=0):
+  def __init__(self, builder, nupic, maxTerms, minSparsity, predictionStart, verbosity=0):
     self.builder = builder
     self.nupic = nupic
-    self.max_terms = max_terms
-    self.min_sparsity = min_sparsity
-    self.prediction_start = prediction_start
+    self.maxTerms = maxTerms
+    self.minSparsity = minSparsity
+    self.predictionStart = predictionStart
     self.verbosity = verbosity
     if verbosity > 0:
       print "Association_Runner parameters:"
-      print "prediction_start:",prediction_start
-      print "max_terms:",max_terms
-      print "min_sparsity:",min_sparsity
-      print
-      print
+      print "predictionStart:",predictionStart
+      print "maxTerms:",maxTerms
+      print "minSparsity:",minSparsity
     self.random = numpy.random.RandomState()
     self.random.seed(40)
 
@@ -48,89 +52,87 @@ class Association_Runner(object):
     print '\n#%5s%16s%16s |%20s' % ('COUNT', 'TERM ONE', 'TERM TWO', 'TERM TWO PREDICTION')
     print '--------------------------------------------------------------------'
 
-    for count in range(0, self.max_terms):
-      # Loops over association list until max_terms is met
+    for count in range(0, self.maxTerms):
+      # Loops over association list until maxTerms is met
       if count >= len(pairs):
         pairs += pairs
-      term1 = strip_punctuation(pairs[count][0]).lower()
-      term2 = strip_punctuation(pairs[count][1]).lower()
-      fetch_result = (count >= self.prediction_start)
+      term1 = stripPunctuation(pairs[count][0]).lower()
+      term2 = stripPunctuation(pairs[count][1]).lower()
+      fetchResult = (count >= self.predictionStart)
       try:
-        term2_prediction = self._feed_term(term1, fetch_result)
-        self._feed_term(term2)
+        term2Prediction = self._feedTerm(term1, fetchResult)
+        self._feedTerm(term2)
         self.nupic.reset()
-      except Sparsity_Exception as sparsity_err:
+      except SparsityException as sparsityErr:
         if self.verbosity > 0:
-          print sparsity_err
+          print sparsityErr
           print 'skipping pair [%s, %s]' % pairs[count]
         continue
-      if term2_prediction:
-        print '#%5i%16s%16s |%20s' % (count, term1, term2, term2_prediction)
-    
-    return term2_prediction
+      if term2Prediction:
+        print '#%5i%16s%16s |%20s' % (count, term1, term2, term2Prediction)
+
+    return term2Prediction
 
 
-  def associate_triples(self, triples):
+  def associateTriples(self, triples):
     print 'Prediction output for %i triples of terms' % len(triples)
     print '\n#%5s%16s%16s%16s |%20s' % ('COUNT', 'TERM ONE',
                                     'TERM TWO', 'TERM THREE',
                                     'TERM THREE PREDICTION')
     print ('-----------------------------------------------------------------'
           '------------')
-    for count in range(0, self.max_terms):
-      # Loops over association list until max_terms is met
+    for count in range(0, self.maxTerms):
+      # Loops over association list until maxTerms is met
       if count >= len(triples):
         triples += triples
-      term1 = strip_punctuation(triples[count][0]).lower()
-      term2 = strip_punctuation(triples[count][1]).lower()
-      term3 = strip_punctuation(triples[count][2]).lower()
-      fetch_result = (count >= self.prediction_start)
+      term1 = stripPunctuation(triples[count][0]).lower()
+      term2 = stripPunctuation(triples[count][1]).lower()
+      term3 = stripPunctuation(triples[count][2]).lower()
+      fetchResult = False
       if term1 == "fox":
-        print
+        fetchResult = True
         prompt("But what does the fox eat?? (Press 'return' to see!)\n")
       try:
-        term2_prediction = self._feed_term(term1, fetch_result, subsample=True)
-        term3_prediction = self._feed_term(term2, fetch_result, subsample=True)
-        self._feed_term(term3, subsample=True)
+        self._feedTerm(term1, fetchResult, subsample=True)
+        term3Prediction = self._feedTerm(term2, fetchResult, subsample=True)
+        self._feedTerm(term3, subsample=True)
         self.nupic.reset()
-      except Sparsity_Exception as sparsity_err:
+      except SparsityException as sparsityErr:
         if self.verbosity > 0:
-          print sparsity_err
+          print sparsityErr
           print 'skipping triple',triples[count]
         continue
-      if term3_prediction:
-        print '#%5i%16s%16s%16s |%20s' % (count, term1, term2,
-                                          term3, term3_prediction)
-    
-    return term2_prediction
+      print '#%5i%16s%16s%16s |%20s' % (count, term1, term2,
+                                        term3, term3Prediction)
 
 
-  def direct_association(self, input_file):
-    associations = read_words_from(input_file)
+
+  def directAssociation(self, input_file):
+    associations = readWordsFrom(input_file)
     self.associate(associations)
 
 
-  def direct_association_triples(self, input_file):
-    associations = read_words_from(input_file)
-    self.associate_triples(associations)
+  def directAssociationTriples(self, input_file):
+    associations = readWordsFrom(input_file)
+    self.associateTriples(associations)
 
 
-  def random_dual_association(self, term1_file, term2_file):
+  def randomDualAssociation(self, term1_file, term2_file):
     all_first_terms = open(term1_file).read().strip().split('\n')
     all_second_terms = open(term2_file).read().strip().split('\n')
     associations = []
-    for count in range(0, self.max_terms):
+    for count in range(0, self.maxTerms):
       associations.append((choice(all_first_terms), choice(all_second_terms)))
     self.associate(associations)
-    
-  def subsample_sdr(self, raw_sdr, pct = 0.75):
-    """ Subsample the CEPT SDR (json representation) """
-    positions = raw_sdr['positions']
-    raw_sdr['positions'] = self.subsample_sdr_bitmap(positions, pct)
-    raw_sdr['sparsity'] = pct*raw_sdr['sparsity']
-    return raw_sdr
 
-  def subsample_sdr_bitmap(self, bitmap, pct=0.75):
+  def subsampleSdr(self, rawSdr, pct = 0.75):
+    """ Subsample the CEPT SDR (json representation) """
+    positions = rawSdr['positions']
+    rawSdr['positions'] = self.subsampleSdrBitmap(positions, pct)
+    rawSdr['sparsity'] = pct*rawSdr['sparsity']
+    return rawSdr
+
+  def subsampleSdrBitmap(self, bitmap, pct=0.75):
     """ Subsample the CEPT bitmap """
     n = len(bitmap)
     ns = (int)(pct*n)   # New length
@@ -142,28 +144,28 @@ class Association_Runner(object):
     return newPositions
 
 
-  def _feed_term(self, term, fetch_word_from_sdr=False, subsample=False):
-    raw_sdr = self.builder.term_to_sdr(term)
-    sparsity = raw_sdr['sparsity']
+  def _feedTerm(self, term, fetchWordFromSdr=False, subsample=False):
+    rawSdr = self.builder.termToSdr(term)
+    sparsity = rawSdr['sparsity']
     if sparsity > 2.0 and subsample:
-      raw_sdr = self.subsample_sdr(raw_sdr)
-    if sparsity < self.min_sparsity:
-      raise Sparsity_Exception('"%s" has a sparsity of %.1f%%, which is below the \
-minimum sparsity threshold of %.1f%%.' % (term, sparsity, self.min_sparsity))
-    sdr_array = self.builder.convert_bitmap_to_sdr(raw_sdr)
-    predicted_bitmap = self.nupic.feed(sdr_array)
-    output_sparsity = float(len(predicted_bitmap)) / (float(raw_sdr['width']) * float(raw_sdr['height'])) * 100.0
-    # print 'Sparsity %s:prediction ==> %.2f%%: %.2f%%' % (term, raw_sdr['sparsity'], output_sparsity)
-    if fetch_word_from_sdr:
-      if len(predicted_bitmap) is 0:
-        predicted_word = ' '
-      elif len(predicted_bitmap) >= MAX_BITMAP_SIZE:
-        # The predicted_bitmap is too dense, so we subsample
-        scaling = float(MAX_BITMAP_SIZE) / (len(predicted_bitmap) + 20)
-        predicted_bitmap = self.subsample_sdr_bitmap(predicted_bitmap, pct=scaling)
-        predicted_word = self.builder.closest_term(predicted_bitmap)
+      rawSdr = self.subsampleSdr(rawSdr)
+    if sparsity < self.minSparsity:
+      raise SparsityException('"%s" has a sparsity of %.1f%%, which is below the \
+      minimum sparsity threshold of %.1f%%.' % (term, sparsity, self.minSparsity))
+    predictedBitmap = self.nupic.feed(rawSdr['positions'])
+    outputSparsity = float(len(predictedBitmap)) / BMP_LENGTH * 100.0
+    if fetchWordFromSdr:
+      if len(predictedBitmap) is 0:
+        predictedWord = ' '
+      elif len(predictedBitmap) >= MAX_BITMAP_SIZE:
+        # The predictedBitmap is too dense, so we subsample
+        scaling = float(MAX_BITMAP_SIZE) / (len(predictedBitmap) + 20)
+        predictedBitmap = self.subsampleSdrBitmap(predictedBitmap, pct=scaling)
+        print "a"
+        predictedWord = self.builder.closestTerm(predictedBitmap)
       else:
-        predicted_word = self.builder.closest_term(predicted_bitmap)
-      return predicted_word
+        print "b"
+        predictedWord = self.builder.closestTerm(predictedBitmap)
+      return predictedWord
     else:
       return None

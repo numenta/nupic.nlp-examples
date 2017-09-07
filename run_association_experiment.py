@@ -3,51 +3,48 @@ import os
 import sys
 import time
 from optparse import OptionParser
-from nupic_nlp import SDR_Builder, Nupic_Word_Client, Association_Runner
-from pycept.cept import RETINA_SIZES
+from nupic_nlp import SDRBuilder, NupicWordClient, AssociationRunner
 
-if 'CEPT_APP_KEY' not in os.environ:
-  print 'Missing CEPT_APP_KEY environment variables.'
+BMP_WIDTH = 128
+BMP_HEIGHT = 128
+BMP_LENGTH = BMP_WIDTH * BMP_HEIGHT
+
+if 'CORTICAL_API_KEY' not in os.environ:
+  print 'Missing CORTICAL_API_KEY environment variables.'
   print 'You can retrieve these by registering for the CEPT API at '
-  print 'https://cept.3scale.net/'
+  print 'http://www.cortical.io/'
   quit(-1)
 
-cept_app_key = os.environ['CEPT_APP_KEY']
+corticalApiKey = os.environ['CORTICAL_API_KEY']
 
 DEFAULT_MAX_TERMS = '100'
 DEFAULT_MIN_sparsity = 2.0 # percent
 DEFAULT_PREDICTION_START = '50'
-DEFAULT_RETINA = 'eng_gen'
-cache_dir = './cache'
+cacheDir = './cache'
 
 parser = OptionParser(usage="%prog input_file [options]")
 
 parser.add_option('-t', '--max-terms',
   default=DEFAULT_MAX_TERMS,
-  dest='max_terms',
+  dest='maxTerms',
   help='Maximum terms to process. Specify "all" for to process all available \
 terms.')
 
 parser.add_option('-s', '--min-sparsity',
   default=DEFAULT_MIN_sparsity,
-  dest='min_sparsity',
+  dest='minSparsity',
   help='Minimum SDR sparsity threshold. Any words processed with sparsity lower \
 than this value will be ignored.')
 
 parser.add_option('-p', '--prediction-start',
   default=DEFAULT_PREDICTION_START,
-  dest='prediction_start',
+  dest='predictionStart',
   help='Start converting predicted values into words using the CEPT API after \
 this many values have been seen.')
 
-parser.add_option('-r', '--retina',
-  default=DEFAULT_RETINA,
-  dest='retina',
-  help='Which retina to use from cotrical.io')
-
 parser.add_option('--triples',
   action="store_true", default=False,
-  dest='predict_triples',
+  dest='predictTriples',
   help='If specified, assumes word file contains word triples')
 
 parser.add_option("-v", "--verbose",
@@ -60,63 +57,59 @@ parser.add_option("-v", "--verbose",
 def main(*args, **kwargs):
   """ NuPIC NLP main entry point. """
   (options, args) = parser.parse_args()
-  if options.max_terms.lower() == 'all':
-    max_terms = sys.maxint
+  if options.maxTerms.lower() == 'all':
+    maxTerms = sys.maxint
   else:
-    max_terms = int(options.max_terms)
-  min_sparsity = float(options.min_sparsity)
-  prediction_start = int(options.prediction_start)
+    maxTerms = int(options.maxTerms)
+  minSparsity = float(options.minSparsity)
+  predictionStart = int(options.predictionStart)
   verbosity = 0
   if options.verbose:
     verbosity = 1
 
-  retina = options.retina
-
   # Create the cache directory if necessary.
-  if not os.path.exists(cache_dir):
-    os.mkdir(cache_dir)
+  if not os.path.exists(cacheDir):
+    os.mkdir(cacheDir)
 
-  builder = SDR_Builder(cept_app_key, cache_dir,
-                        verbosity=verbosity,
-                        retina=retina)
+  builder = SDRBuilder(corticalApiKey, cacheDir,
+                        verbosity=verbosity)
 
-  def size_to_thresholds(sdr_size):
+  def sizeToThresholds(sdr_size):
       """ scale minThreshold and activationThreshold according to sdr_size """
       factor = float(sdr_size) / (128*128)
+      print factor
       return 80*factor, 100*factor
 
-  sdr_size = RETINA_SIZES[retina]['width'] * RETINA_SIZES[retina]['height']
+  minThreshold, activationThreshold = sizeToThresholds(BMP_LENGTH)
 
-  minThreshold, activationThreshold = size_to_thresholds(sdr_size)
-  
-  if options.predict_triples:
+  if options.predictTriples:
     # Instantiate TP with parameters for Fox demo
-    nupic = Nupic_Word_Client(numberOfCols=sdr_size,
-                              minThreshold=minThreshold,
-                              activationThreshold=activationThreshold,
-                              pamLength=10)
+    print activationThreshold
+    nupic = NupicWordClient(numberOfCols=BMP_LENGTH,
+                            minThreshold=minThreshold,
+                            activationThreshold=activationThreshold,
+                            verbosity=verbosity)
   else:
-    nupic = Nupic_Word_Client(numberOfCols=sdr_size)
-  if options.verbose:
-    nupic.printParameters()
-  runner = Association_Runner(builder, nupic,
-                              max_terms, min_sparsity,
-                              prediction_start, verbosity=verbosity)
+    nupic = NupicWordClient(numberOfCols=BMP_LENGTH, verbosity=verbosity)
+
+  runner = AssociationRunner(builder, nupic,
+                              maxTerms, minSparsity,
+                              predictionStart, verbosity=verbosity)
 
   if len(args) is 0:
     print 'no input file provided!'
     exit(1)
   elif len(args) == 1:
-    if options.predict_triples:
+    if options.predictTriples:
       if options.verbose: print "Predicting triples!"
-      runner.direct_association_triples(args[0])
+      runner.directAssociationTriples(args[0])
     else:
-      runner.direct_association(args[0])
+      runner.directAssociation(args[0])
   else:
-    if options.predict_triples:
+    if options.predictTriples:
       print "Please specify exactly one input file containing triples"
     else:
-      runner.random_dual_association(args[0], args[1])
+      runner.randomDualAssociation(args[0], args[1])
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ if 'CORTICAL_API_KEY' not in os.environ:
 corticalApiKey = os.environ['CORTICAL_API_KEY']
 
 DEFAULT_MAX_TERMS = '100'
-DEFAULT_MIN_sparsity = 2.0 # percent
+DEFAULT_MIN_sparsity = 0.5 # percent
 DEFAULT_PREDICTION_START = '50'
 cacheDir = './cache'
 
@@ -54,6 +54,41 @@ parser.add_option("-v", "--verbose",
   help="Prints details about errors and API calls.")
 
 
+def exploreOverlaps(builder, similarTerms, dissimilarTerms):
+  """Show overlaps between similar and dissimilar terms"""
+  fingerprints = {}
+  for term in similarTerms+dissimilarTerms:
+    fingerprints[term] = builder.termToSdr(term)
+
+  print ",",
+  for t1 in dissimilarTerms:
+    print t1,",",
+  print
+
+  for t1 in similarTerms:
+    print t1,",",
+    for t2 in dissimilarTerms:
+      print len(set(fingerprints[t1]["positions"]).intersection(
+        set(fingerprints[t2]["positions"]))),",",
+    print
+
+  print ","
+
+  print ",",
+  for t1 in similarTerms:
+    print t1,",",
+  print
+
+  for t1 in similarTerms:
+    print t1,",",
+    for t2 in similarTerms:
+      print len(set(fingerprints[t1]["positions"]).intersection(
+        set(fingerprints[t2]["positions"]))),",",
+    print
+
+  print ","
+
+
 def main(*args, **kwargs):
   """ NuPIC NLP main entry point. """
   (options, args) = parser.parse_args()
@@ -86,8 +121,6 @@ def main(*args, **kwargs):
     # Instantiate TP with parameters for Fox demo
     print activationThreshold
     nupic = NupicWordClient(numberOfCols=BMP_LENGTH,
-                            minThreshold=minThreshold,
-                            activationThreshold=activationThreshold,
                             verbosity=verbosity)
   else:
     nupic = NupicWordClient(numberOfCols=BMP_LENGTH, verbosity=verbosity)
@@ -95,6 +128,9 @@ def main(*args, **kwargs):
   runner = AssociationRunner(builder, nupic,
                               maxTerms, minSparsity,
                               predictionStart, verbosity=verbosity)
+
+  if len(args) > 1:
+    args.pop(0)
 
   if len(args) is 0:
     print 'no input file provided!'
@@ -114,4 +150,3 @@ def main(*args, **kwargs):
 
 if __name__ == "__main__":
   main()
-  time.sleep(30)

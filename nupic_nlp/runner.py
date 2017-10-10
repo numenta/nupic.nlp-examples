@@ -60,7 +60,7 @@ class AssociationRunner(object):
       term2 = stripPunctuation(pairs[count][1]).lower()
       fetchResult = (count >= self.predictionStart)
       try:
-        term2Prediction = self._feedTerm(term1, fetchResult)
+        term2Prediction, predictedWords = self._feedTerm(term1, fetchResult)
         self._feedTerm(term2)
         self.nupic.reset()
       except SparsityException as sparsityErr:
@@ -81,6 +81,8 @@ class AssociationRunner(object):
                                     'TERM THREE PREDICTION')
     print ('-----------------------------------------------------------------'
           '------------')
+    fetchPredictedWord = True
+    learn = True
     for count in range(0, self.maxTerms):
       # Loops over association list until maxTerms is met
       if count >= len(triples):
@@ -88,14 +90,19 @@ class AssociationRunner(object):
       term1 = stripPunctuation(triples[count][0]).lower()
       term2 = stripPunctuation(triples[count][1]).lower()
       term3 = stripPunctuation(triples[count][2]).lower()
-      fetchResult = False
-      if term1 == "fox":
-        fetchResult = True
+
+      if term1 == "foxes":
+        learn = False
+        fetchPredictedWord = True
         prompt("But what does the fox eat?? (Press 'return' to see!)\n")
+        term3 = ""
+
       try:
-        self._feedTerm(term1, fetchResult, subsample=True)
-        term3Prediction = self._feedTerm(term2, fetchResult, subsample=True)
-        self._feedTerm(term3, subsample=True)
+        self._feedTerm(term1, subsample=True, learn=learn)
+        term3Prediction, predictedWords = self._feedTerm(
+          term2, fetchPredictedWord, subsample=True, learn=learn)
+        if term1 != "foxes":
+          self._feedTerm(term3, subsample=True, learn=learn)
         self.nupic.reset()
       except SparsityException as sparsityErr:
         if self.verbosity > 0:
@@ -104,7 +111,12 @@ class AssociationRunner(object):
         continue
       print '#%5i%16s%16s%16s |%20s' % (count, term1, term2,
                                         term3, term3Prediction)
-
+      if term1 == "foxes":
+        print "\nThey might also eat:",
+        for term in predictedWords[1:]:
+          if term.score > 100:
+            print term.term,
+        print
 
 
   def directAssociation(self, input_file):
@@ -144,7 +156,7 @@ class AssociationRunner(object):
     return newPositions
 
 
-  def _feedTerm(self, term, fetchWordFromSdr=False, subsample=False):
+  def _feedTerm(self, term, fetchPrediction=False, subsample=False, learn=True):
     rawSdr = self.builder.termToSdr(term)
     sparsity = rawSdr['sparsity']
     if sparsity > 2.0 and subsample:
@@ -152,20 +164,19 @@ class AssociationRunner(object):
     if sparsity < self.minSparsity:
       raise SparsityException('"%s" has a sparsity of %.1f%%, which is below the \
       minimum sparsity threshold of %.1f%%.' % (term, sparsity, self.minSparsity))
-    predictedBitmap = self.nupic.feed(rawSdr['positions'])
+    predictedBitmap = self.nupic.feed(rawSdr['positions'], learn)
     outputSparsity = float(len(predictedBitmap)) / BMP_LENGTH * 100.0
-    if fetchWordFromSdr:
+    if fetchPrediction:
       if len(predictedBitmap) is 0:
         predictedWord = ' '
+        predictedWords = []
       elif len(predictedBitmap) >= MAX_BITMAP_SIZE:
         # The predictedBitmap is too dense, so we subsample
         scaling = float(MAX_BITMAP_SIZE) / (len(predictedBitmap) + 20)
         predictedBitmap = self.subsampleSdrBitmap(predictedBitmap, pct=scaling)
-        print "a"
-        predictedWord = self.builder.closestTerm(predictedBitmap)
+        predictedWord, predictedWords = self.builder.closestTerm(predictedBitmap)
       else:
-        print "b"
-        predictedWord = self.builder.closestTerm(predictedBitmap)
-      return predictedWord
+        predictedWord, predictedWords = self.builder.closestTerm(predictedBitmap)
+      return predictedWord, predictedWords
     else:
       return None

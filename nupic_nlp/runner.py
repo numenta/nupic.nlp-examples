@@ -121,6 +121,7 @@ class AssociationRunner(object):
 
   def directAssociation(self, input_file):
     associations = readWordsFrom(input_file)
+    print associations
     self.associate(associations)
 
 

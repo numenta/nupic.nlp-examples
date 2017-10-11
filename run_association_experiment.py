@@ -129,9 +129,6 @@ def main(*args, **kwargs):
                               maxTerms, minSparsity,
                               predictionStart, verbosity=verbosity)
 
-  if len(args) > 1:
-    args.pop(0)
-
   if len(args) is 0:
     print 'no input file provided!'
     exit(1)

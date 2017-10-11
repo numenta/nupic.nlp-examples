@@ -90,10 +90,8 @@ class Builder(object):
         closest = self.corticalClient.getSimilarTermsForExpression(
           json.dumps({"positions": onBits.tolist()}), getFingerprint=False
         )
+        out = (closest[0].term, closest)
     except Exception as e:
       # CEPT didn't like our SDR, so we show <garbage> in the output
-      closest = [{'term': '<garbage>'},]
-    if len(closest) is 0:
-      return None
-    else:
-      return closest[0].term, closest
+      out = ('', [{'term': '<garbage>'},])
+    return out

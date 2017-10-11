@@ -30,9 +30,8 @@ class Builder(object):
     self.cacheDir = cacheDir
     self.corticalClient = retinasdk.FullClient(
       apiKey, apiServer="http://api.cortical.io/rest",
-      retinaName="en_associative"
+      retinaName="en_synonymous"
     )
-
 
 
   def termToSdr(self, term):
@@ -91,11 +90,8 @@ class Builder(object):
         closest = self.corticalClient.getSimilarTermsForExpression(
           json.dumps({"positions": onBits.tolist()}), getFingerprint=False
         )
+        out = (closest[0].term, closest)
     except Exception as e:
-      print e
       # CEPT didn't like our SDR, so we show <garbage> in the output
-      closest = [{'term': '<garbage>'},]
-    if len(closest) is 0:
-      return None
-    else:
-      return closest[0].term
+      out = ('', [{'term': '<garbage>'},])
+    return out

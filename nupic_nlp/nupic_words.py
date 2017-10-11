@@ -8,15 +8,22 @@ class Client(object):
   def __init__(self,
                numberOfCols=16384,
                cellsPerColumn=8,
-               activationThreshold=13,
-               minThreshold=10,
+               activationThreshold=60,
+               minThreshold=60,
                verbosity=0
                ):
     self.tm = TM(
       columnDimensions=(numberOfCols,),
       cellsPerColumn=cellsPerColumn,
       activationThreshold=activationThreshold,
-      minThreshold=minThreshold)
+      minThreshold=minThreshold,
+      maxNewSynapseCount=164,
+      initialPermanence=0.21,
+      connectedPermanence=0.3,
+      permanenceIncrement=0.1,
+      permanenceDecrement=0.0,
+      predictedSegmentDecrement=0.0,
+    )
 
     if verbosity > 0:
       print "TM Params:"
@@ -24,20 +31,20 @@ class Client(object):
       print "cellsPerColumn: {}".format(self.tm.getCellsPerColumn())
       print "activationThreshold: {}".format(self.tm.getActivationThreshold())
       print "minThreshold: {}".format(self.tm.getMinThreshold())
-      # print "columnDimensions: {}".format(self.tm.getColumnDimensions())
-      # print "columnDimensions: {}".format(self.tm.getColumnDimensions())
-      # print "columnDimensions: {}".format(self.tm.getColumnDimensions())
-      # print "columnDimensions: {}".format(self.tm.getColumnDimensions())
-      # print "columnDimensions: {}".format(self.tm.getColumnDimensions())
-      # print "columnDimensions: {}".format(self.tm.getColumnDimensions())
+      print "maxNewSynapseCount {}".format(self.tm.getMaxNewSynapseCount())
+      print "initialPermanence {}".format(self.tm.getInitialPermanence())
+      print "connectedPermanence {}".format(self.tm.getConnectedPermanence())
+      print "permanenceIncrement {}".format(self.tm.getPermanenceIncrement())
+      print "permanenceDecrement {}".format(self.tm.getPermanenceDecrement())
+      print "predictedSegmentDecrement {}".format(self.tm.getPredictedSegmentDecrement())
 
-  def feed(self, sdr):
+  def feed(self, sdr, learn=True):
     tm = self.tm
     narr = numpy.array(sdr, dtype="uint32")
-    tm.compute(narr, learn=True)
+    tm.compute(narr, learn=learn)
     # This returns the indices of the predictive minicolumns.
     predictiveCells = tm.getPredictiveCells()
-    # print predictiveCells
+
     return numpy.unique(numpy.array(predictiveCells) / tm.getCellsPerColumn())
 
 

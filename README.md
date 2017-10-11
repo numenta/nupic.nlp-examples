@@ -20,7 +20,7 @@ Before you have the NLTK text corpus available for local processing, you need to
     >>> import nltk
     >>> nltk.download()
 
-This will bring up a GUI window for you to choose what texts to download. Choose them all and proceed. This will take a few minutes.
+This will bring up a GUI window for you to choose what texts to download. Choose them all and proceed. This will take a few minutes. The NLTK corpus contains somewhere around 6,300 nouns to process, which means over 12K API calls to Cortical for SDRs. The results of each call are cached in the `./cache` directory, so subsequent runs will be much faster, but if you want to run it all in one go, I would suggest you run it overnight and specify `--max-terms=all`.
 
 ### Environment
 
@@ -101,54 +101,6 @@ Required SDR sparsity, in percent, for terms to be included. This omits uncommon
     -p <int>
 
 When to start sending the predicted SDRs from NuPIC back to the CEPT API to translate back into English words. This adds overhead because of the HTTP calls, and initial results will probably be bad. So setting this a bit into your term list is a good idea if you want to time-box the process.
-
-### Singular and Plural Nouns
-
-> This really doesn't work at all. NuPIC doesn't predict anything. It was my first experiment, and I made the assumption that singular and plural semantic information was inherent in the CEPT SDRs, but it seems they are not. I am leaving it as an example of how you might extract text from the NLTK corpus and push through NuPIC.
-
-The `run_plural_noun_experiment.py` script contains code to extract all the nouns from the corpus contained within the [Python NLTK](http://nltk.org/) and attempt to construct each plural form. It then passes each word pair into the CEPT API to retrieve a [Sparce Distributed Representation (SDR)](https://github.com/numenta/nupic/wiki/Sparse-Distributed-Representations) of it. If this word or its derived plural for is below a sparsity threshold (default 2.0%), it both words are ignored. This means that the either the word(s) are quite uncommon in the English language, or that the derived plural form is malformed (ex: cactus -> cactuses). Each SDR retrieved is cached within a local `./cache` directory within a JSON file.
-
-After extraction of nouns and conversion into SDRs, each noun will be pushed through NuPIC's temporal pooler as a raw SDR. Singular forms are followed by plural forms, and between each pair, a temporal pooler reset() occurs. After `--prediction-start` terms have been fed into NuPIC's TP (default 1000), predictions from the TP will be sent to the CEPT API to calculate the closest term from SDR.
-
-#### Usage
-
-Just run the script, which will kick off a long process on the first time it's runs. This long process will import all the NLTK texts, extract all the nouns from them, and cache them locally within `./cache/texts`. It will then start looping through them and calling the CEPT API to get their SDRs.
-
-    ./run_plural_noun_experiment.py [options]
-
-##### Options
-
-    --verbose
-    -v
-
-Prints details about CEPT API calls and minimum sparsity errors.
-
-    --max-terms=<int>
-    -t <int>
-
-How many total terms to run. Stops after reaching this limit. If `all` is specified instead of an integer value, it will run indefinitely.
-
-    --min-sparsity=<float>
-    -s <float>
-
-Required SDR sparsity, in percent, for terms to be included. This omits uncommon words from the process. The lower the sparsity, the less words get processed. CEPT will return anywhere from 1.0% to 5.0% sparse representations. The default for this value is 0.0%.
-
-    --prediction-start=<int>
-    -p <int>
-
-When to start sending the predicted SDRs from NuPIC back to the CEPT API to translate back into English words. This adds overhead because of the HTTP calls, and initial results will probably be bad. So setting this a bit into your term list is a good idea if you want to time-box the process.
-
-##### Examples
-
-Running without any options will take a very long time, so you might want to try it out by specifying the maximum amount of terms to process:
-
-    python run_plural_noun_experiment.py --max-terms=10
-
-You can also specify the minimun sparsity threshold:
-
-    python run_plural_noun_experiment.py --max-terms=10 --min-sparsity=1.0
-
-The NLTK corpus contains somewhere around 6,300 nouns to process, which means over 12K API calls to CEPT for SDRs. The results of each call are cached in the `./cache` directory, so subsequent runs will be much faster, but if you want to run it all in one go, I would suggest you run it overnight and specify `--max-terms=all`.
 
 ### Parts of Speech
 

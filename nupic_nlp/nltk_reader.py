@@ -1,14 +1,13 @@
 import os
 import string
 
-from nltk.corpus import (gutenberg, 
+from nltk.corpus import (gutenberg,
                         wordnet as wn)
 from nltk.corpus.reader import NOUN
 from nltk.corpus.reader import PlaintextCorpusReader
-from nltk.tag import pos_tag
-from nltk.tag.simplify import simplify_wsj_tag
-from nltk.tokenize import (word_tokenize, 
-                          wordpunct_tokenize, 
+from nltk.tag import pos_tag, map_tag
+from nltk.tokenize import (word_tokenize,
+                          wordpunct_tokenize,
                           sent_tokenize)
 from tags import DESCRIPTIONS as tag_descriptions
 
@@ -28,14 +27,7 @@ def is_punctuation(word):
   return word in string.punctuation or word == '--'
 
 
-def pos_tag_sentence(sent, simplify_tags=False):
-  tagged = pos_tag(sent)
-  if simplify_tags:
-    tagged = [ (word, simplify_wsj_tag(tag)) for word, tag in tagged ]
-  return tagged
-
-
-class NLTK_Reader(object):
+class NLTKReader(object):
 
   ERROR = 0
   WARN = 1
@@ -118,8 +110,8 @@ class NLTK_Reader(object):
     self._check_text_availability(text_name)
     words_with_puncuation = self.get_words(text_name)
     # Strip punctuation and make lower case.
-    words = [w.lower() 
-      for w in words_with_puncuation 
+    words = [w.lower()
+      for w in words_with_puncuation
       if w not in string.punctuation and len(w) > 3]
     # Remove duplicate nouns.
     words = list(set(words))
@@ -172,19 +164,18 @@ class NLTK_Reader(object):
     return self._get_reader_for(text_name).sents(text_name)
 
 
-  def get_tagged_sentences(self, text_name, exclude_punctuation=False, simplify_tags=False):
+  def get_tagged_sentences(self, text_name, exclude_punctuation=False):
     for sent in self.get_sentences(text_name):
       if exclude_punctuation:
         sent = [ word for word in sent if not is_punctuation(word) ]
-      yield pos_tag_sentence(sent, simplify_tags=simplify_tags)
+      yield pos_tag(sent)
 
 
-  def get_parts_of_speech(self, text_name, exclude_punctuation=False, simplify_tags=False):
+  def get_parts_of_speech(self, text_name, exclude_punctuation=False):
     self._log(self.INFO, 'Parts of speech extraction beginning. This might take awhile...')
     pos = set()
-    for sent in self.get_tagged_sentences(text_name, 
-                                          exclude_punctuation=exclude_punctuation, 
-                                          simplify_tags=simplify_tags):
+    for sent in self.get_tagged_sentences(text_name,
+                                          exclude_punctuation=exclude_punctuation):
       words, parts = zip(*sent)
       pos.update(parts)
     # String blanks (not sure why there are blanks, but there are sometimes).

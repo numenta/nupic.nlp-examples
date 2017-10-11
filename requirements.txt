@@ -1,0 +1,4 @@
+nupic>=1.0.0
+retinasdk==1.0.0
+pyyaml
+nltk

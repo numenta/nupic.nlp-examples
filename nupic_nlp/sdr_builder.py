@@ -2,7 +2,11 @@ import math
 import os
 import sys
 import json
-import pycept
+import retinasdk
+
+BMP_WIDTH = 128
+BMP_HEIGHT = 128
+BMP_LENGTH = BMP_WIDTH * BMP_HEIGHT
 
 
 def plural(word):
@@ -16,53 +20,78 @@ def plural(word):
     return word + 's'
 
 
-def is_valid(sdr, min_sparsity):
+def isValid(sdr, min_sparsity):
   return sdr['sparsity'] > min_sparsity
 
 
 class Builder(object):
 
-  def __init__(self, cept_app_key, cache_dir, retina='eng_gen', verbosity=0):
-    self.cept_client = pycept.Cept(cept_app_key, retina=retina, verbosity=verbosity)
-    self.cache_dir = cache_dir
+  def __init__(self, apiKey, cacheDir, verbosity=0):
+    self.cacheDir = cacheDir
+    self.corticalClient = retinasdk.FullClient(
+      apiKey, apiServer="http://api.cortical.io/rest",
+      retinaName="en_synonymous"
+    )
 
 
-  def term_to_sdr(self, term):
-    """ Create a cache location for each term, where it will either be read in 
+  def termToSdr(self, term):
+    """ Create a cache location for each term, where it will either be read in
     from or cached within if we have to go to the CEPT API to get the SDR."""
-    cache_file = os.path.join(self.cache_dir, term + '.json')
+    cacheFile = os.path.join(self.cacheDir, term + '.json')
     # Get it from the cache if it's there.
-    if os.path.exists(cache_file):
-      cached_sdr = json.loads(open(cache_file).read())
+    if os.path.exists(cacheFile):
+      fingerprint = json.loads(open(cacheFile).read())
     # Get it from CEPT API if it's not cached.
     else:
-      cached_sdr = self.cept_client.getBitmap(term)
-      if 'sparsity' not in cached_sdr:
-        # attach the sparsity for reference
-        total = float(cached_sdr['width']) * float(cached_sdr['height'])
-        on = len(cached_sdr['positions'])
-        sparsity = round((on / total) * 100)
-        cached_sdr['sparsity'] = sparsity
+      result = self.corticalClient.getTerms(
+        term=term, getFingerprint=True
+      )
+      if len(result) is 0:
+        # This means the API doesn't know the term.
+        fingerprint = {}
+        fingerprint['positions'] = []
+      else:
+        f = result[0].fingerprint
+        fingerprint = dict((name, getattr(f, name)) for name in dir(f) if not name.startswith('__'))
+      # attach the sparsity for reference
+      on = len(fingerprint['positions'])
+      sparsity = float(on) / float(BMP_LENGTH) * 100.0
+      fingerprint['sparsity'] = sparsity
       # write to cache
-      with open(cache_file, 'w') as f:
-        f.write(json.dumps(cached_sdr))
-    return cached_sdr
+      with open(cacheFile, 'w') as f:
+        f.write(json.dumps(fingerprint))
+    return fingerprint
 
 
 
-  def convert_bitmap_to_sdr(self, bitmap):
-    sdr_string = self.cept_client._bitmapToSdr(bitmap)
-    return [int(bit) for bit in sdr_string]
-
-
-
-  def closest_term(self, onBits):
-    try:
-        closest = self.cept_client.bitmapToTerms(onBits)
-    except Exception as e:
-        # CEPT didn't like our SDR, so we show <garbage> in the output
-        closest = [{'term': '<garbage>'},]
-    if len(closest) is 0:
-      return None
+  def convertBitmapToSdr(self, bitmap):
+    positions = bitmap["positions"]
+    sdr = []
+    if len(positions) is 0:
+      nextOn = None
     else:
-      return closest[0]['term']
+      nextOn = positions.pop(0)
+
+    for sdrIndex in range(0, BMP_LENGTH):
+      if nextOn is None or nextOn != sdrIndex:
+        sdr.append(0)
+      else:
+        sdr.append(1)
+        if len(positions) is 0:
+          nextOn = None
+        else:
+          nextOn = positions.pop(0)
+
+    return sdr
+
+
+  def closestTerm(self, onBits):
+    try:
+        closest = self.corticalClient.getSimilarTermsForExpression(
+          json.dumps({"positions": onBits.tolist()}), getFingerprint=False
+        )
+        out = (closest[0].term, closest)
+    except Exception as e:
+      # CEPT didn't like our SDR, so we show <garbage> in the output
+      out = ('', [{'term': '<garbage>'},])
+    return out

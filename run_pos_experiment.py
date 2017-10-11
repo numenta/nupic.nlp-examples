@@ -3,8 +3,8 @@
 import os
 from optparse import OptionParser
 
-from nupic_nlp import NLTK_Reader
-from nupic.frameworks.opf.modelfactory import ModelFactory
+from nupic_nlp import NLTKReader
+from nupic.frameworks.opf.model_factory import ModelFactory
 
 import run_pos_model_params
 
@@ -25,13 +25,6 @@ parser.add_option("-v", "--verbose",
   dest="verbose",
   default=False,
   help="Prints moar details.")
-
-parser.add_option("-f", "--full-tagging",
-  action="store_true",
-  dest="full_tagging",
-  default=False,
-  help="Uses all available part of speech tagging. Otherwise, simplified NLTK \
-tagging is used.")
 
 parser.add_option("-i", "--text-info",
   action="store_true",
@@ -57,9 +50,9 @@ def report(output):
   print '%15s %20s %20s' % tuple(output)
 
 
-def run_pos_experiment(model, reader, target_text, simple_tags, output_file=None):
+def run_pos_experiment(model, reader, target_text, output_file=None):
   last_prediction = ('','')
-  for sentence in reader.get_tagged_sentences(target_text, simplify_tags=simple_tags):
+  for sentence in reader.get_tagged_sentences(target_text):
     for tag in sentence:
       word = tag[0]
       pos = tag[1]
@@ -77,16 +70,14 @@ def main(*args, **kwargs):
   """POS Experiment main entry point."""
 
   (options, args) = parser.parse_args()
-  verbosity = NLTK_Reader.WARN
+  verbosity = NLTKReader.WARN
   if options.verbose:
-    verbosity = NLTK_Reader.DEBUG
+    verbosity = NLTKReader.DEBUG
 
-  reader = NLTK_Reader(
+  reader = NLTKReader(
     input='./resources/text',
     cache_dir='./cache/text', verbosity=verbosity
   )
-
-  simple_tags = not options.full_tagging
 
   if options.text_info:
     reader.text_report()
@@ -103,7 +94,7 @@ def main(*args, **kwargs):
   if target_text is not None:
     if options.pos_report:
       print 'Parts of Speech found in %s:' % target_text
-      for pos in reader.get_parts_of_speech(target_text, simplify_tags=simple_tags):
+      for pos in reader.get_parts_of_speech(target_text):
         tag_description = reader.describe_tag(pos)
         print '\t%6s  %s (%s)' % (pos, tag_description[0], tag_description[1])
     else:
@@ -121,10 +112,9 @@ def main(*args, **kwargs):
           output_file.write('%10s%10s%20s\n' % ('input', 'pos', 'predicted_pos'))
         # Append each result to output file.
         with open(output_file_path, 'a') as output_file:
-          run_pos_experiment(model, reader, target_text, simple_tags, output_file)
+          run_pos_experiment(model, reader, target_text, output_file)
       else:
-        run_pos_experiment(model, reader, target_text, simple_tags)
+        run_pos_experiment(model, reader, target_text)
 
 if __name__ == "__main__":
   main()
-

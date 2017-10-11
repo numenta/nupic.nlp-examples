@@ -1,6 +1,6 @@
 MODEL_PARAMS = {
     # Type of model that the rest of these parameters apply to.
-    'model': "CLA",
+    'model': "HTMPrediction",
 
     # Version that specifies the format of the config.
     'version': 1,
@@ -17,7 +17,7 @@ MODEL_PARAMS = {
         'seconds': 0,
         'weeks': 0,
         'years': 0},
-    
+
     'predictAheadTime': None,
 
     # Model parameter dictionary.
@@ -38,7 +38,7 @@ MODEL_PARAMS = {
             #     ],
             #
             # (value generated from DS_ENCODER_SCHEMA)
-            'encoders': {   
+            'encoders': {
                 '_classifierInput': {
                     'fieldname': 'pos',
                     'classifierOnly': True,
@@ -88,15 +88,9 @@ MODEL_PARAMS = {
             # SP inhibition control (absolute value);
             # Maximum number of active columns in the SP region's output (when
             # there are more, the weaker ones are suppressed)
-            'numActivePerInhArea': 40,
+            'numActiveColumnsPerInhArea': 40,
 
             'seed': 1956,
-
-            # coincInputPoolPct
-            # What percent of the columns's receptive field is available
-            # for potential synapses. At initialization time, we will
-            # choose coincInputPoolPct * (2*coincInputRadius+1)^2
-            'coincInputPoolPct': 0.5,
 
             # The default connected threshold. Any synapse whose
             # permanence value is above the connected threshold is
@@ -111,18 +105,17 @@ MODEL_PARAMS = {
 
             'synPermActiveInc': 0.1,
 
-            'synPermInactiveDec': 0.025910586208889513,
+            'synPermInactiveDec': 0.025910586208889513
 
-            'randomSP': 0,
         },
 
         # Controls whether TP is enabled or disabled;
         # TP is necessary for making temporal predictions, such as predicting
         # the next inputs.  Without TP, the model is only capable of
         # reconstructing missing sensor inputs (via SP).
-        'tpEnable' : True,
+        'tmEnable' : True,
 
-        'tpParams': {
+        'tmParams': {
             # TP diagnostic output verbosity control;
             # 0: silent; [1..6]: increasing levels of verbosity
             # (see verbosity in nta/trunk/py/nupic/research/TP.py and TP10X*.py)
@@ -207,11 +200,11 @@ MODEL_PARAMS = {
         },
 
         'clParams': {
-            'regionName' : 'CLAClassifierRegion',
+            'regionName' : 'SDRClassifierRegion',
 
             # Classifier diagnostic output verbosity control;
             # 0: silent; [1..6]: increasing levels of verbosity
-            'clVerbosity' : 0,
+            'verbosity' : 0,
 
             # This controls how fast the classifier learns/forgets. Higher values
             # make it adapt faster and forget older patterns faster.

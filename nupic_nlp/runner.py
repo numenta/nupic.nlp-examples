@@ -48,6 +48,7 @@ class AssociationRunner(object):
 
 
   def associate(self, pairs):
+    print pairs
     print 'Prediction output for %i pairs of terms' % len(pairs)
     print '\n#%5s%16s%16s |%20s' % ('COUNT', 'TERM ONE', 'TERM TWO', 'TERM TWO PREDICTION')
     print '--------------------------------------------------------------------'
@@ -121,7 +122,7 @@ class AssociationRunner(object):
 
   def directAssociation(self, input_file):
     associations = readWordsFrom(input_file)
-    print associations
+    print "HERE"
     self.associate(associations)
 
 
